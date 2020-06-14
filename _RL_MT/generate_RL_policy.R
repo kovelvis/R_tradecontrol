@@ -6,9 +6,8 @@
 #' This function will perform Reinforcement Learning using Trading Data. It should start working directly from the start
 #'
 #' @param x - Dataframe containing trading data 
-#' @param states - possible states for Reinforcement Learning
-#' @param actions - possible actions
-#' @param control - control parameters
+#' @param states 
+#' @param actions 
 #'
 #' @return Function returns data frame with reinforcement learning model policy
 #' @export

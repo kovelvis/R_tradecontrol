@@ -11,7 +11,7 @@
 # packages used *** make sure to install these packages
 library(tidyverse) #install.packages("tidyverse")
 library(lubridate) #install.packages("lubridate") 
-library(ReinforcementLearning) #install.packages("ReinforcementLearning")
+library(ReinforcementLearning) #devtools::install_github("nproellochs/ReinforcementLearning")
 library(magrittr)
 
 # ----------- Main Steps -----------------
@@ -38,7 +38,6 @@ source("C:/Users/fxtrams/Documents/000_TradingRepo/R_tradecontrol/import_data.R"
 source("C:/Users/fxtrams/Documents/000_TradingRepo/R_tradecontrol/_RL/generate_RL_policy.R")
 source("C:/Users/fxtrams/Documents/000_TradingRepo/R_tradecontrol/_RL/record_policy.R")
 source("C:/Users/fxtrams/Documents/000_TradingRepo/R_tradecontrol/writeCommandViaCSV.R")
-
  
 # -------------------------
 # Define terminals path addresses, from where we are going to read/write data
@@ -49,13 +48,10 @@ path_T1 <- "C:/Program Files (x86)/FxPro - Terminal1/MQL4/Files/"
 # terminal 3 path *** make sure to customize this path
 path_T3 <- "C:/Program Files (x86)/FxPro - Terminal3/MQL4/Files/"
 
-# path where to read control parameters from
-path_control_files = "C:/Users/fxtrams/Documents/000_TradingRepo/R_tradecontrol/_RL/control"
-
 # -------------------------
 # read data from trades in terminal 1
 # -------------------------
-# uncomment code below to test functionality without MT4 platform installed
+# # uncomment code below to test functionality without MT4 platform installed
 # DFT1 <- try(import_data(trade_log_file = "_TEST_DATA/OrdersResultsT1.csv",
 #                         demo_mode = T),
 #             silent = TRUE)
@@ -63,7 +59,7 @@ DFT1 <- try(import_data(path_T1, "OrdersResultsT1.csv"), silent = TRUE)
 # -------------------------
 # read data from trades in terminal 3
 # -------------------------
-DFT3 <- try(import_data(path_T3, "OrdersResultsT3.csv"), silent = TRUE)
+DFT3 <- try(import_data(path_T4, "OrdersResultsT3.csv"), silent = TRUE)
 
 # Vector with unique Trading Systems
 vector_systems <- DFT1 %$% MagicNumber %>% unique() %>% sort()
@@ -80,8 +76,7 @@ for (i in 1:length(vector_systems)) {
   # tryCatch() function will not abort the entire for loop in case of the error in one iteration
   tryCatch({
     # execute this code below for debugging:
-    # i <- 17 #policy off
-    # i <- 2 #policy on
+    # i <- 5
     
     # extract current magic number id
   trading_system <- vector_systems[i]
@@ -103,12 +98,12 @@ for (i in 1:length(vector_systems)) {
   # epsilon - sampling rate    0.1 <- high sample| low sample  -> 0.9
   # iter 
   # ----- 
-  #control <- list(alpha = 0.3, gamma = 0.6, epsilon = 0.1)
-  # check existence of the file with control parameters, go to next if not exists
-  if(!file.exists(paste0(path_control_files,"/", trading_system, ".rds"))) { next }
-  # Use optimal control parameters found by auxiliary function
-  control <- read_rds(paste0(path_control_files,"/", trading_system, ".rds"))
-  #control <- read_rds(paste0(path_control_files,"/", 8118102, ".rds"))
+  # to uncomment desired learning parameters:
+  # NOTE: more research is required to find best parameters TDL TDL TDL
+  #control <- list(alpha = 0.5, gamma = 0.5, epsilon = 0.5)
+  #control <- list(alpha = 0.9, gamma = 0.9, epsilon = 0.9)
+  control <- list(alpha = 0.1, gamma = 0.2, epsilon = 0.5)
+  #control <- list(alpha = 0.3, gamma = 0.6, epsilon = 0.1) 
   
   # perform reinforcement learning and return policy
   policy_tr_systDF <- generate_RL_policy(trading_systemDF, states = states,actions = actions,
@@ -158,15 +153,16 @@ if(file.exists(file.path(path_T1, "01_MacroeconomicEvent.csv"))){
   if(DF_NT[1,1] == 0) {
     # enable trades
     if(!class(DFT1)[1]=='try-error'){
-      # temporary solution: enable trades from the working project
-      read_csv("C:/Users/fxtrams/Documents/000_TradingRepo/FALCON_A/TEST/Setup.csv") %>%
-        group_by(Magic) %>% select(Magic) %>% mutate(IsEnabled = 1) %>% 
+      DFT1 %>%
+        group_by(MagicNumber) %>% select(MagicNumber) %>% mutate(IsEnabled = 1) %>% 
         # write commands to disable systems
         writeCommandViaCSV(path_T1)}
-
+    # in this algorithm SystemControl file must be enabled in case there are no MacroEconomic Event
+    if(!class(DFT3)[1]=='try-error'){
+      DFT3 %>%
+        group_by(MagicNumber) %>% select(MagicNumber) %>% mutate(IsEnabled = 1) %>% 
+        writeCommandViaCSV(path_T3)}
     
   }
   
 }
-
-
